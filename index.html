@@ -1,0 +1,941 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Terraform Cheatsheet</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Syne:wght@400;700;800&display=swap" rel="stylesheet"/>
+<style>
+  :root {
+    --bg: #0b0f1a;
+    --surface: #111827;
+    --surface2: #1a2235;
+    --border: #1f2d45;
+    --accent: #7c6af7;
+    --accent2: #38bdf8;
+    --accent3: #34d399;
+    --accent4: #fb923c;
+    --accent5: #f472b6;
+    --text: #e2e8f0;
+    --muted: #64748b;
+    --code-bg: #0d1117;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Syne', sans-serif;
+    min-height: 100vh;
+    padding: 2rem 1.5rem 4rem;
+  }
+
+  /* Subtle grid background */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(rgba(124,106,247,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(124,106,247,0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .container { max-width: 1100px; margin: 0 auto; position: relative; z-index: 1; }
+
+  header {
+    margin-bottom: 2.5rem;
+    animation: fadeDown 0.6s ease both;
+  }
+
+  .header-top {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 0.5rem;
+  }
+
+  .tf-badge {
+    background: linear-gradient(135deg, #7c6af7, #38bdf8);
+    color: #fff;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.7rem;
+    font-weight: 700;
+    padding: 0.3rem 0.7rem;
+    border-radius: 4px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+
+  h1 {
+    font-size: clamp(1.8rem, 4vw, 2.8rem);
+    font-weight: 800;
+    background: linear-gradient(90deg, #e2e8f0 0%, #7c6af7 60%, #38bdf8 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    line-height: 1.1;
+  }
+
+  .subtitle {
+    color: var(--muted);
+    font-size: 0.95rem;
+    margin-top: 0.4rem;
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  /* Filter tabs */
+  .tabs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-bottom: 2rem;
+    animation: fadeDown 0.6s 0.1s ease both;
+  }
+
+  .tab {
+    padding: 0.4rem 1rem;
+    border-radius: 999px;
+    font-size: 0.8rem;
+    font-weight: 700;
+    cursor: pointer;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--muted);
+    transition: all 0.2s;
+    font-family: 'JetBrains Mono', monospace;
+    letter-spacing: 0.05em;
+  }
+
+  .tab:hover { border-color: var(--accent); color: var(--text); }
+  .tab.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+
+  /* Grid layout */
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 1.25rem;
+  }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+    transition: transform 0.2s, border-color 0.2s, box-shadow 0.2s;
+    animation: fadeUp 0.5s ease both;
+  }
+
+  .card:hover {
+    transform: translateY(-2px);
+    border-color: var(--accent);
+    box-shadow: 0 8px 30px rgba(124,106,247,0.15);
+  }
+
+  .card-header {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0.9rem 1.1rem;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .card-icon {
+    width: 28px;
+    height: 28px;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.85rem;
+    flex-shrink: 0;
+  }
+
+  .card-title {
+    font-size: 0.85rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+
+  .card-body { padding: 1rem 1.1rem; display: flex; flex-direction: column; gap: 0.7rem; }
+
+  /* Command rows */
+  .cmd {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+
+  .cmd-line {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.6rem;
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 0.5rem 0.7rem;
+    cursor: pointer;
+    transition: border-color 0.15s, background 0.15s;
+    position: relative;
+  }
+
+  .cmd-line:hover { border-color: var(--accent2); background: #111827; }
+
+  .prompt {
+    color: var(--accent3);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.75rem;
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+
+  .cmd-text {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.78rem;
+    color: var(--accent2);
+    flex: 1;
+    word-break: break-all;
+  }
+
+  .copy-btn {
+    font-size: 0.65rem;
+    color: var(--muted);
+    flex-shrink: 0;
+    opacity: 0;
+    transition: opacity 0.15s;
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  .cmd-line:hover .copy-btn { opacity: 1; }
+  .copy-btn.copied { color: var(--accent3); }
+
+  .cmd-desc {
+    font-size: 0.78rem;
+    color: var(--muted);
+    padding-left: 0.3rem;
+  }
+
+  /* HCL code blocks */
+  .hcl-block {
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 0.8rem;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.75rem;
+    line-height: 1.6;
+    overflow-x: auto;
+  }
+
+  .kw { color: #c792ea; }
+  .str { color: #c3e88d; }
+  .var { color: #82aaff; }
+  .cmt { color: #546e7a; font-style: italic; }
+  .fn { color: #ffcb6b; }
+  .num { color: var(--accent4); }
+
+  /* Concept pills */
+  .concept-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.5rem;
+  }
+
+  .concept {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 0.6rem 0.8rem;
+  }
+
+  .concept-name {
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: var(--accent2);
+    margin-bottom: 0.2rem;
+  }
+
+  .concept-desc {
+    font-size: 0.72rem;
+    color: var(--muted);
+    line-height: 1.4;
+  }
+
+  /* Color themes per section */
+  .theme-cli .card-header { border-left: 3px solid var(--accent); }
+  .theme-cli .card-icon { background: rgba(124,106,247,0.15); color: var(--accent); }
+  .theme-hcl .card-header { border-left: 3px solid var(--accent2); }
+  .theme-hcl .card-icon { background: rgba(56,189,248,0.15); color: var(--accent2); }
+  .theme-state .card-header { border-left: 3px solid var(--accent3); }
+  .theme-state .card-icon { background: rgba(52,211,153,0.15); color: var(--accent3); }
+  .theme-modules .card-header { border-left: 3px solid var(--accent4); }
+  .theme-modules .card-icon { background: rgba(251,146,60,0.15); color: var(--accent4); }
+  .theme-tips .card-header { border-left: 3px solid var(--accent5); }
+  .theme-tips .card-icon { background: rgba(244,114,182,0.15); color: var(--accent5); }
+
+  .section-label {
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin: 2rem 0 0.8rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .section-label::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  @keyframes fadeDown {
+    from { opacity: 0; transform: translateY(-15px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(15px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .toast {
+    position: fixed;
+    bottom: 2rem;
+    right: 2rem;
+    background: var(--accent3);
+    color: #0b0f1a;
+    padding: 0.6rem 1.2rem;
+    border-radius: 8px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.8rem;
+    font-weight: 700;
+    opacity: 0;
+    transform: translateY(10px);
+    transition: all 0.2s;
+    pointer-events: none;
+    z-index: 100;
+  }
+
+  .toast.show { opacity: 1; transform: translateY(0); }
+
+  .divider { height: 1px; background: var(--border); margin: 0.3rem 0; }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <header>
+    <div class="header-top">
+      <span class="tf-badge">IaC</span>
+      <span class="tf-badge" style="background: linear-gradient(135deg,#34d399,#38bdf8)">Snow/Flexera Prep</span>
+    </div>
+    <h1>Terraform Cheatsheet</h1>
+    <p class="subtitle">// infrastructure as code — click any command to copy</p>
+  </header>
+
+  <div class="tabs">
+    <div class="tab active" onclick="filterCards('all', this)">All</div>
+    <div class="tab" onclick="filterCards('cli', this)">CLI Commands</div>
+    <div class="tab" onclick="filterCards('hcl', this)">HCL Syntax</div>
+    <div class="tab" onclick="filterCards('state', this)">State</div>
+    <div class="tab" onclick="filterCards('modules', this)">Modules</div>
+    <div class="tab" onclick="filterCards('tips', this)">Interview Tips</div>
+  </div>
+
+  <!-- CLI SECTION -->
+  <div class="section-label" data-cat="cli">⚡ Core CLI Commands</div>
+  <div class="grid">
+
+    <div class="card theme-cli" data-cat="cli">
+      <div class="card-header">
+        <div class="card-icon">🚀</div>
+        <span class="card-title">Init & Plan</span>
+      </div>
+      <div class="card-body">
+        <div class="cmd">
+          <div class="cmd-line" onclick="copy('terraform init', this)">
+            <span class="prompt">$</span><span class="cmd-text">terraform init</span><span class="copy-btn">copy</span>
+          </div>
+          <div class="cmd-desc">Download providers, initialize backend, set up modules</div>
+        </div>
+        <div class="cmd">
+          <div class="cmd-line" onclick="copy('terraform init -upgrade', this)">
+            <span class="prompt">$</span><span class="cmd-text">terraform init -upgrade</span><span class="copy-btn">copy</span>
+          </div>
+          <div class="cmd-desc">Upgrade provider versions to latest allowed by constraints</div>
+        </div>
+        <div class="cmd">
+          <div class="cmd-line" onclick="copy('terraform plan', this)">
+            <span class="prompt">$</span><span class="cmd-text">terraform plan</span><span class="copy-btn">copy</span>
+          </div>
+          <div class="cmd-desc">Show what changes will be made — dry run, no side effects</div>
+        </div>
+        <div class="cmd">
+          <div class="cmd-line" onclick="copy('terraform plan -out=tfplan', this)">
+            <span class="prompt">$</span><span class="cmd-text">terraform plan -out=tfplan</span><span class="copy-btn">copy</span>
+          </div>
+          <div class="cmd-desc">Save plan to file — apply this exact plan later (CI/CD pattern)</div>
+        </div>
+        <div class="cmd">
+          <div class="cmd-line" onclick="copy('terraform plan -var-file=prod.tfvars', this)">
+            <span class="prompt">$</span><span class="cmd-text">terraform plan -var-file=prod.tfvars</span><span class="copy-btn">copy</span>
+          </div>
+          <div class="cmd-desc">Use a specific variable file for environment overrides</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card theme-cli" data-cat="cli">
+      <div class="card-header">
+        <div class="card-icon">⚙️</div>
+        <span class="card-title">Apply & Destroy</span>
+      </div>
+      <div class="card-body">
+        <div class="cmd">
+          <div class="cmd-line" onclick="copy('terraform apply', this)">
+            <span class="prompt">$</span><span class="cmd-text">terraform apply</span><span class="copy-btn">copy</span>
+          </div>
+          <div class="cmd-desc">Apply changes — prompts for confirmation</div>
+        </div>
+        <div class="cmd">
+          <div class="cmd-line" onclick="copy('terraform apply -auto-approve', this)">
+            <span class="prompt">$</span><span class="cmd-text">terraform apply -auto-approve</span><span class="copy-btn">copy</span>
+          </div>
+          <div class="cmd-desc">Skip confirmation — use in CI/CD pipelines only</div>
+        </div>
+        <div class="cmd">
+          <div class="cmd-line" onclick="copy('terraform apply tfplan', this)">
+            <span class="prompt">$</span><span class="cmd-text">terraform apply tfplan</span><span class="copy-btn">copy</span>
+          </div>
+          <div class="cmd-desc">Apply a saved plan file — deterministic, no surprises</div>
+        </div>
+        <div class="divider"></div>
+        <div class="cmd">
+          <div class="cmd-line" onclick="copy('terraform destroy', this)">
+            <span class="prompt">$</span><span class="cmd-text">terraform destroy</span><span class="copy-btn">copy</span>
+          </div>
+          <div class="cmd-desc">Destroy all managed infrastructure</div>
+        </div>
+        <div class="cmd">
+          <div class="cmd-line" onclick="copy('terraform destroy -target=aws_instance.web', this)">
+            <span class="prompt">$</span><span class="cmd-text">terraform destroy -target=aws_instance.web</span><span class="copy-btn">copy</span>
+          </div>
+          <div class="cmd-desc">Destroy a specific resource only</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card theme-cli" data-cat="cli">
+      <div class="card-header">
+        <div class="card-icon">🔍</div>
+        <span class="card-title">Inspect & Debug</span>
+      </div>
+      <div class="card-body">
+        <div class="cmd">
+          <div class="cmd-line" onclick="copy('terraform show', this)">
+            <span class="prompt">$</span><span class="cmd-text">terraform show</span><span class="copy-btn">copy</span>
+          </div>
+          <div class="cmd-desc">Show current state in human-readable format</div>
+        </div>
+        <div class="cmd">
+          <div class="cmd-line" onclick="copy('terraform output', this)">
+            <span class="prompt">$</span><span class="cmd-text">terraform output</span><span class="copy-btn">copy</span>
+          </div>
+          <div class="cmd-desc">Print all output values</div>
+        </div>
+        <div class="cmd">
+          <div class="cmd-line" onclick="copy('terraform output -json', this)">
+            <span class="prompt">$</span><span class="cmd-text">terraform output -json</span><span class="copy-btn">copy</span>
+          </div>
+          <div class="cmd-desc">Machine-readable outputs — useful for scripting</div>
+        </div>
+        <div class="cmd">
+          <div class="cmd-line" onclick="copy('terraform validate', this)">
+            <span class="prompt">$</span><span class="cmd-text">terraform validate</span><span class="copy-btn">copy</span>
+          </div>
+          <div class="cmd-desc">Check HCL syntax without hitting cloud APIs</div>
+        </div>
+        <div class="cmd">
+          <div class="cmd-line" onclick="copy('terraform fmt -recursive', this)">
+            <span class="prompt">$</span><span class="cmd-text">terraform fmt -recursive</span><span class="copy-btn">copy</span>
+          </div>
+          <div class="cmd-desc">Auto-format all .tf files — run this before every commit</div>
+        </div>
+        <div class="cmd">
+          <div class="cmd-line" onclick="copy('terraform graph | dot -Tsvg > graph.svg', this)">
+            <span class="prompt">$</span><span class="cmd-text">terraform graph | dot -Tsvg > graph.svg</span><span class="copy-btn">copy</span>
+          </div>
+          <div class="cmd-desc">Visualize resource dependency graph</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- HCL SYNTAX SECTION -->
+  <div class="section-label" data-cat="hcl">📝 HCL Syntax</div>
+  <div class="grid">
+
+    <div class="card theme-hcl" data-cat="hcl">
+      <div class="card-header">
+        <div class="card-icon">🏗️</div>
+        <span class="card-title">Core Blocks</span>
+      </div>
+      <div class="card-body">
+        <div class="hcl-block">
+<span class="cmt"># Provider configuration</span>
+<span class="kw">terraform</span> {
+  required_providers {
+    aws = {
+      source  = <span class="str">"hashicorp/aws"</span>
+      version = <span class="str">"~> 5.0"</span>
+    }
+  }
+  backend <span class="str">"s3"</span> {
+    bucket = <span class="str">"my-tf-state"</span>
+    key    = <span class="str">"prod/terraform.tfstate"</span>
+    region = <span class="str">"us-east-1"</span>
+  }
+}
+
+<span class="kw">provider</span> <span class="str">"aws"</span> {
+  region = <span class="var">var</span>.region
+}
+
+<span class="cmt"># Resource block</span>
+<span class="kw">resource</span> <span class="str">"aws_instance"</span> <span class="str">"web"</span> {
+  ami           = <span class="var">data</span>.aws_ami.ubuntu.id
+  instance_type = <span class="var">var</span>.instance_type
+
+  tags = {
+    Name = <span class="str">"web-server"</span>
+    Env  = <span class="var">var</span>.environment
+  }
+}</div>
+      </div>
+    </div>
+
+    <div class="card theme-hcl" data-cat="hcl">
+      <div class="card-header">
+        <div class="card-icon">📦</div>
+        <span class="card-title">Variables & Outputs</span>
+      </div>
+      <div class="card-body">
+        <div class="hcl-block">
+<span class="cmt"># Input variable</span>
+<span class="kw">variable</span> <span class="str">"instance_type"</span> {
+  description = <span class="str">"EC2 instance size"</span>
+  type        = <span class="var">string</span>
+  default     = <span class="str">"t3.micro"</span>
+  validation {
+    condition     = <span class="fn">contains</span>([<span class="str">"t3.micro"</span>, <span class="str">"t3.small"</span>], <span class="var">var</span>.instance_type)
+    error_message = <span class="str">"Must be t3.micro or t3.small."</span>
+  }
+}
+
+<span class="cmt"># Local value - computed, not input</span>
+<span class="kw">locals</span> {
+  name_prefix = <span class="str">"${var.env}-${var.app}"</span>
+  common_tags = {
+    ManagedBy = <span class="str">"terraform"</span>
+    Env       = <span class="var">var</span>.env
+  }
+}
+
+<span class="cmt"># Output value</span>
+<span class="kw">output</span> <span class="str">"instance_ip"</span> {
+  description = <span class="str">"Public IP of web server"</span>
+  value       = <span class="var">aws_instance</span>.web.public_ip
+  sensitive   = <span class="kw">false</span>
+}</div>
+      </div>
+    </div>
+
+    <div class="card theme-hcl" data-cat="hcl">
+      <div class="card-header">
+        <div class="card-icon">🔄</div>
+        <span class="card-title">Meta-arguments & Loops</span>
+      </div>
+      <div class="card-body">
+        <div class="hcl-block">
+<span class="cmt"># count - create N identical resources</span>
+<span class="kw">resource</span> <span class="str">"aws_instance"</span> <span class="str">"workers"</span> {
+  count         = <span class="num">3</span>
+  instance_type = <span class="str">"t3.micro"</span>
+  ami           = <span class="var">var</span>.ami_id
+  tags = { Name = <span class="str">"worker-${count.index}"</span> }
+}
+
+<span class="cmt"># for_each - create resources from a map</span>
+<span class="kw">resource</span> <span class="str">"aws_s3_bucket"</span> <span class="str">"buckets"</span> {
+  for_each = <span class="fn">toset</span>([<span class="str">"logs"</span>, <span class="str">"data"</span>, <span class="str">"backups"</span>])
+  bucket   = <span class="str">"my-app-${each.key}"</span>
+}
+
+<span class="cmt"># depends_on - explicit dependency</span>
+<span class="kw">resource</span> <span class="str">"aws_db_instance"</span> <span class="str">"db"</span> {
+  depends_on = [<span class="var">aws_security_group</span>.db_sg]
+}
+
+<span class="cmt"># lifecycle rules</span>
+<span class="kw">resource</span> <span class="str">"aws_instance"</span> <span class="str">"web"</span> {
+  lifecycle {
+    create_before_destroy = <span class="kw">true</span>
+    prevent_destroy       = <span class="kw">true</span>
+    ignore_changes        = [<span class="var">ami</span>]
+  }
+}</div>
+      </div>
+    </div>
+
+    <div class="card theme-hcl" data-cat="hcl">
+      <div class="card-header">
+        <div class="card-icon">🗄️</div>
+        <span class="card-title">Data Sources</span>
+      </div>
+      <div class="card-body">
+        <div class="hcl-block">
+<span class="cmt"># Read existing infra not managed by Terraform</span>
+<span class="kw">data</span> <span class="str">"aws_ami"</span> <span class="str">"ubuntu"</span> {
+  most_recent = <span class="kw">true</span>
+  owners      = [<span class="str">"099720109477"</span>] <span class="cmt"># Canonical</span>
+  filter {
+    name   = <span class="str">"name"</span>
+    values = [<span class="str">"ubuntu/images/hvm-ssd/ubuntu-*"</span>]
+  }
+}
+
+<span class="cmt"># Reference it in a resource</span>
+<span class="kw">resource</span> <span class="str">"aws_instance"</span> <span class="str">"web"</span> {
+  ami = <span class="var">data</span>.aws_ami.ubuntu.id
+}
+
+<span class="cmt"># Read from remote state (cross-stack reference)</span>
+<span class="kw">data</span> <span class="str">"terraform_remote_state"</span> <span class="str">"vpc"</span> {
+  backend = <span class="str">"s3"</span>
+  config = {
+    bucket = <span class="str">"my-tf-state"</span>
+    key    = <span class="str">"vpc/terraform.tfstate"</span>
+    region = <span class="str">"us-east-1"</span>
+  }
+}
+<span class="cmt"># Use: data.terraform_remote_state.vpc.outputs.vpc_id</span></div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- STATE SECTION -->
+  <div class="section-label" data-cat="state">💾 State Management</div>
+  <div class="grid">
+
+    <div class="card theme-state" data-cat="state">
+      <div class="card-header">
+        <div class="card-icon">🗂️</div>
+        <span class="card-title">State Commands</span>
+      </div>
+      <div class="card-body">
+        <div class="cmd">
+          <div class="cmd-line" onclick="copy('terraform state list', this)">
+            <span class="prompt">$</span><span class="cmd-text">terraform state list</span><span class="copy-btn">copy</span>
+          </div>
+          <div class="cmd-desc">List all resources tracked in state</div>
+        </div>
+        <div class="cmd">
+          <div class="cmd-line" onclick="copy('terraform state show aws_instance.web', this)">
+            <span class="prompt">$</span><span class="cmd-text">terraform state show aws_instance.web</span><span class="copy-btn">copy</span>
+          </div>
+          <div class="cmd-desc">Show full details of one resource in state</div>
+        </div>
+        <div class="cmd">
+          <div class="cmd-line" onclick="copy('terraform state mv aws_instance.old aws_instance.new', this)">
+            <span class="prompt">$</span><span class="cmd-text">terraform state mv aws_instance.old aws_instance.new</span><span class="copy-btn">copy</span>
+          </div>
+          <div class="cmd-desc">Rename a resource in state without destroying it</div>
+        </div>
+        <div class="cmd">
+          <div class="cmd-line" onclick="copy('terraform state rm aws_instance.web', this)">
+            <span class="prompt">$</span><span class="cmd-text">terraform state rm aws_instance.web</span><span class="copy-btn">copy</span>
+          </div>
+          <div class="cmd-desc">Remove resource from state (resource still exists in cloud)</div>
+        </div>
+        <div class="cmd">
+          <div class="cmd-line" onclick="copy('terraform import aws_instance.web i-1234567890', this)">
+            <span class="prompt">$</span><span class="cmd-text">terraform import aws_instance.web i-1234567890</span><span class="copy-btn">copy</span>
+          </div>
+          <div class="cmd-desc">Import existing cloud resource into Terraform state</div>
+        </div>
+        <div class="cmd">
+          <div class="cmd-line" onclick="copy('terraform refresh', this)">
+            <span class="prompt">$</span><span class="cmd-text">terraform refresh</span><span class="copy-btn">copy</span>
+          </div>
+          <div class="cmd-desc">Sync state with real-world cloud resources</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card theme-state" data-cat="state">
+      <div class="card-header">
+        <div class="card-icon">🔒</div>
+        <span class="card-title">Remote State & Locking</span>
+      </div>
+      <div class="card-body">
+        <div class="concept-grid">
+          <div class="concept">
+            <div class="concept-name">Remote Backend</div>
+            <div class="concept-desc">Store .tfstate in S3, GCS, or Terraform Cloud — never commit state to git</div>
+          </div>
+          <div class="concept">
+            <div class="concept-name">State Locking</div>
+            <div class="concept-desc">DynamoDB table prevents concurrent applies from corrupting state</div>
+          </div>
+          <div class="concept">
+            <div class="concept-name">State Encryption</div>
+            <div class="concept-desc">S3 SSE-KMS encrypts state at rest — state contains secrets!</div>
+          </div>
+          <div class="concept">
+            <div class="concept-name">Workspaces</div>
+            <div class="concept-desc">Separate state per env (dev/staging/prod) in same codebase</div>
+          </div>
+        </div>
+        <div class="divider"></div>
+        <div class="cmd">
+          <div class="cmd-line" onclick="copy('terraform workspace new staging', this)">
+            <span class="prompt">$</span><span class="cmd-text">terraform workspace new staging</span><span class="copy-btn">copy</span>
+          </div>
+          <div class="cmd-desc">Create a new workspace for environment isolation</div>
+        </div>
+        <div class="cmd">
+          <div class="cmd-line" onclick="copy('terraform workspace select prod', this)">
+            <span class="prompt">$</span><span class="cmd-text">terraform workspace select prod</span><span class="copy-btn">copy</span>
+          </div>
+          <div class="cmd-desc">Switch to production workspace</div>
+        </div>
+        <div class="cmd">
+          <div class="cmd-line" onclick="copy('terraform force-unlock LOCK_ID', this)">
+            <span class="prompt">$</span><span class="cmd-text">terraform force-unlock LOCK_ID</span><span class="copy-btn">copy</span>
+          </div>
+          <div class="cmd-desc">Release a stuck state lock (use carefully)</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- MODULES SECTION -->
+  <div class="section-label" data-cat="modules">📦 Modules</div>
+  <div class="grid">
+
+    <div class="card theme-modules" data-cat="modules">
+      <div class="card-header">
+        <div class="card-icon">🧩</div>
+        <span class="card-title">Module Structure</span>
+      </div>
+      <div class="card-body">
+        <div class="hcl-block">
+<span class="cmt"># modules/vpc/main.tf</span>
+<span class="kw">variable</span> <span class="str">"cidr_block"</span> { type = <span class="var">string</span> }
+<span class="kw">variable</span> <span class="str">"env"</span>        { type = <span class="var">string</span> }
+
+<span class="kw">resource</span> <span class="str">"aws_vpc"</span> <span class="str">"this"</span> {
+  cidr_block = <span class="var">var</span>.cidr_block
+  tags       = { Name = <span class="str">"${var.env}-vpc"</span> }
+}
+
+<span class="kw">output</span> <span class="str">"vpc_id"</span> {
+  value = <span class="var">aws_vpc</span>.this.id
+}
+
+<span class="cmt"># root/main.tf — calling the module</span>
+<span class="kw">module</span> <span class="str">"vpc"</span> {
+  source     = <span class="str">"./modules/vpc"</span>
+  cidr_block = <span class="str">"10.0.0.0/16"</span>
+  env        = <span class="var">var</span>.environment
+}
+
+<span class="cmt"># Reference module output</span>
+<span class="kw">resource</span> <span class="str">"aws_subnet"</span> <span class="str">"public"</span> {
+  vpc_id = <span class="var">module</span>.vpc.vpc_id
+}</div>
+      </div>
+    </div>
+
+    <div class="card theme-modules" data-cat="modules">
+      <div class="card-header">
+        <div class="card-icon">🌐</div>
+        <span class="card-title">Module Sources</span>
+      </div>
+      <div class="card-body">
+        <div class="hcl-block">
+<span class="cmt"># Local path</span>
+source = <span class="str">"./modules/vpc"</span>
+
+<span class="cmt"># Terraform Registry (public)</span>
+source  = <span class="str">"terraform-aws-modules/vpc/aws"</span>
+version = <span class="str">"~> 5.0"</span>
+
+<span class="cmt"># Private Git repo</span>
+source = <span class="str">"git::https://github.com/org/modules.git//vpc?ref=v2.1.0"</span>
+
+<span class="cmt"># S3 bucket</span>
+source = <span class="str">"s3::https://s3.amazonaws.com/bucket/modules/vpc.zip"</span></div>
+        <div class="divider"></div>
+        <div class="concept-grid">
+          <div class="concept">
+            <div class="concept-name">DRY Principle</div>
+            <div class="concept-desc">Modules eliminate copy-paste across environments — one source of truth</div>
+          </div>
+          <div class="concept">
+            <div class="concept-name">Version Pinning</div>
+            <div class="concept-desc">Always pin module versions in production to prevent surprise changes</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- INTERVIEW TIPS -->
+  <div class="section-label" data-cat="tips">🎯 Senior Interview Talking Points</div>
+  <div class="grid">
+
+    <div class="card theme-tips" data-cat="tips">
+      <div class="card-header">
+        <div class="card-icon">💡</div>
+        <span class="card-title">Key Concepts to Know Cold</span>
+      </div>
+      <div class="card-body">
+        <div class="concept-grid">
+          <div class="concept">
+            <div class="concept-name">Idempotency</div>
+            <div class="concept-desc">Running terraform apply twice produces the same result — desired state model</div>
+          </div>
+          <div class="concept">
+            <div class="concept-name">Drift Detection</div>
+            <div class="concept-desc">State diverges from reality when infra changes outside Terraform — terraform refresh fixes this</div>
+          </div>
+          <div class="concept">
+            <div class="concept-name">Plan vs Apply</div>
+            <div class="concept-desc">Plan = git diff for infra. Always review plan before apply in prod</div>
+          </div>
+          <div class="concept">
+            <div class="concept-name">Sensitive Values</div>
+            <div class="concept-desc">Mark outputs sensitive=true, use Vault provider or AWS Secrets Manager — never hardcode secrets</div>
+          </div>
+          <div class="concept">
+            <div class="concept-name">count vs for_each</div>
+            <div class="concept-desc">for_each is preferred — count causes index shift issues when middle items are removed</div>
+          </div>
+          <div class="concept">
+            <div class="concept-name">Provider Locking</div>
+            <div class="concept-desc">.terraform.lock.hcl pins provider versions — commit this file to git</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card theme-tips" data-cat="tips">
+      <div class="card-header">
+        <div class="card-icon">🏆</div>
+        <span class="card-title">CI/CD Pipeline Pattern</span>
+      </div>
+      <div class="card-body">
+        <div class="hcl-block">
+<span class="cmt"># Typical CI/CD workflow (GitHub Actions / GitLab CI)</span>
+
+<span class="cmt"># PR opened:</span>
+terraform fmt -check     <span class="cmt"># fail if unformatted</span>
+terraform validate       <span class="cmt"># syntax check</span>
+terraform plan -out=plan <span class="cmt"># post plan to PR comment</span>
+
+<span class="cmt"># PR merged to main:</span>
+terraform apply plan     <span class="cmt"># apply the exact saved plan</span>
+
+<span class="cmt"># Key CI/CD env vars:</span>
+TF_VAR_environment = <span class="str">"prod"</span>
+TF_CLI_ARGS_plan   = <span class="str">"-lock-timeout=60s"</span>
+AWS_ROLE_ARN       = <span class="str">"arn:aws:iam::123:role/tf-deploy"</span></div>
+        <div class="concept" style="margin-top:0.5rem">
+          <div class="concept-name">OIDC over long-lived keys</div>
+          <div class="concept-desc">Use GitHub OIDC → AWS IAM role federation instead of storing AWS_ACCESS_KEY in CI secrets — no static credentials</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card theme-tips" data-cat="tips">
+      <div class="card-header">
+        <div class="card-icon">⚠️</div>
+        <span class="card-title">Common Gotchas</span>
+      </div>
+      <div class="card-body">
+        <div class="concept-grid">
+          <div class="concept">
+            <div class="concept-name">Never edit state manually</div>
+            <div class="concept-desc">Use terraform state mv/rm — manual edits corrupt the JSON and break everything</div>
+          </div>
+          <div class="concept">
+            <div class="concept-name">Destroy ordering</div>
+            <div class="concept-desc">depends_on controls creation order but also reverse-destruction order — matters for IAM/network resources</div>
+          </div>
+          <div class="concept">
+            <div class="concept-name">prevent_destroy</div>
+            <div class="concept-desc">Add to databases and stateful resources in prod — stops accidental terraform destroy</div>
+          </div>
+          <div class="concept">
+            <div class="concept-name">Partial apply</div>
+            <div class="concept-desc">If apply fails midway, state reflects partial changes — re-running apply is safe due to idempotency</div>
+          </div>
+          <div class="concept">
+            <div class="concept-name">Large refactors</div>
+            <div class="concept-desc">Use moved {} blocks (TF 1.1+) when renaming resources — avoids destroy/recreate</div>
+          </div>
+          <div class="concept">
+            <div class="concept-name">State in git = bad</div>
+            <div class="concept-desc">tfstate contains plaintext secrets. Always use remote backend with encryption</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+</div>
+
+<div class="toast" id="toast">Copied!</div>
+
+<script>
+function copy(text, el) {
+  navigator.clipboard.writeText(text).then(() => {
+    const btn = el.querySelector('.copy-btn');
+    btn.textContent = '✓';
+    btn.classList.add('copied');
+    setTimeout(() => { btn.textContent = 'copy'; btn.classList.remove('copied'); }, 1500);
+    const toast = document.getElementById('toast');
+    toast.classList.add('show');
+    setTimeout(() => toast.classList.remove('show'), 1800);
+  });
+}
+
+function filterCards(cat, tabEl) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  tabEl.classList.add('active');
+
+  document.querySelectorAll('.card, .section-label').forEach(el => {
+    if (cat === 'all') {
+      el.style.display = '';
+    } else {
+      el.style.display = (el.dataset.cat === cat) ? '' : 'none';
+    }
+  });
+}
+</script>
+</body>
+</html>
